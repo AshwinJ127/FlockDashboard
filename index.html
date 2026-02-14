@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Flock Dashboard</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="container">
+        <h1>Flock Dashboard</h1>
+
+        <div class="refresh-button-container">
+            <button id="refresh-button" class="refresh-button">Refresh Trips</button>
+        </div>
+
+        <div id="loading-indicator" class="loading-indicator" style="display: none;">Loading trips...</div>
+        <div id="error-message" class="error-message" style="display: none;"></div>
+
+        <div id="trip-list" class="trip-list">
+            <!-- Trip cards will be inserted here by JavaScript -->
+        </div>
+
+        <h2 style="text-align: center; margin-top: 40px; color: #2563eb;">Analytics</h2>
+
+        <div class="analytics-section">
+            <h3>New Trips Posted Per Week</h3>
+            <div id="trips-per-week-data" class="analytics-data">
+                <!-- Trips per week data will be inserted here by JavaScript -->
+            </div>
+        </div>
+
+        <div class="analytics-section" style="margin-top: 30px;">
+            <h3>Users Over Time</h3>
+            <div id="users-over-time-data" class="analytics-data">
+                <!-- Users over time data will be inserted here by JavaScript -->
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="script.js"></script>
+</body>
+</html>
