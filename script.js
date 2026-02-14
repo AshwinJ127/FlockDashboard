@@ -1,7 +1,7 @@
 // Supabase client and elements declarations (no immediate initialization)
 let supabaseClient;
 const supabaseUrl = 'https://fnmsbbtskyfwmcojqukc.supabase.co';
-const supabaseAnonKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZubXNiYnRza3lmd21jb2pxdWtjIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDU0NDcwNDYsImexA2MTAyMzA0Nn0.vStl4iZ5Jpn_wOBEkhhl8x1tVOe17Faeb07gPdu2Q-s';
+const supabaseAnonKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZubXNiYnRza3lmd21jb2pxdWtjIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDU0NDcwNDYsImV4cCI6MjA2MTAyMzA0Nn0.vStl4iZ5Jpn_wOBEkhhl8x1tVOe17Faeb07gPdu2Q-s';
 
 const tripListDiv = document.getElementById('trip-list');
 const refreshButton = document.getElementById('refresh-button');
@@ -102,6 +102,8 @@ refreshButton.addEventListener('click', () => {
     fetchAndDisplayTrips();
     fetchAndDisplayTripsPerWeek();
     fetchAndDisplayUsersOverTime();
+    fetchAndDisplayTripsByPickupLocationChart();
+    fetchAndDisplayCumulativeUsersChart();
 });
 
 // Initial setup and fetch when the DOM is fully loaded
@@ -123,32 +125,49 @@ document.addEventListener('DOMContentLoaded', () => {
 // Function to fetch and display new trips posted per week
 async function fetchAndDisplayTripsPerWeek() {
     const tripsPerWeekDiv = document.getElementById('trips-per-week-data');
-    tripsPerWeekDiv.innerHTML = '<p class="loading-indicator">Loading trips per week...</p>';
+    const chartContainer = tripsPerWeekDiv.previousElementSibling; // Get the chart-container div
+    const canvas = chartContainer.querySelector('#tripsPerWeekChart');
+    const ctx = canvas.getContext('2d');
+
+    // Clear previous chart if it exists
+    if (window.tripsPerWeekChartInstance) {
+        window.tripsPerWeekChartInstance.destroy();
+    }
+
+    chartContainer.style.display = 'block'; // Show chart container
+    tripsPerWeekDiv.style.display = 'none'; // Hide list data
 
     try {
         const { data, error } = await supabaseClient
             .from('trips')
-            .select('created_at')
-            .order('created_at', { ascending: true });
+            .select('updated_at')
+            .order('updated_at', { ascending: true });
 
         if (error) {
             console.error('Error fetching trips for analytics:', error);
-            tripsPerWeekDiv.innerHTML = `<p class="error-message">Failed to load trips analytics: ${error.message}</p>`;
+            chartContainer.innerHTML = `<p class="error-message">Failed to load trips analytics: ${error.message}</p>`;
             return;
         }
 
         if (data.length === 0) {
-            tripsPerWeekDiv.innerHTML = '<p class="loading-indicator">No trip data for analytics.</p>';
+            chartContainer.innerHTML = '<p class="loading-indicator">No trip data for analytics.</p>';
             return;
         }
 
         const tripsByWeek = {};
         data.forEach(trip => {
-            const date = new Date(trip.created_at);
-            // Get the start of the week (Sunday)
+            if (!trip.updated_at) {
+                console.warn('Skipping trip due to missing updated_at:', trip);
+                return;
+            }
+            const date = new Date(trip.updated_at);
+            if (isNaN(date.getTime())) {
+                console.warn('Skipping trip due to invalid updated_at date:', trip);
+                return;
+            }
             const startOfWeek = new Date(date.setDate(date.getDate() - date.getDay()));
-            startOfWeek.setHours(0, 0, 0, 0); // Normalize to start of day
-            const weekKey = startOfWeek.toISOString().split('T')[0]; // YYYY-MM-DD format for key
+            startOfWeek.setHours(0, 0, 0, 0);
+            const weekKey = startOfWeek.toISOString().split('T')[0];
 
             if (!tripsByWeek[weekKey]) {
                 tripsByWeek[weekKey] = 0;
@@ -157,50 +176,318 @@ async function fetchAndDisplayTripsPerWeek() {
         });
 
         const sortedWeeks = Object.keys(tripsByWeek).sort((a, b) => new Date(a).getTime() - new Date(b).getTime());
+        const chartLabels = sortedWeeks.map(weekKey => new Date(weekKey).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }));
+        const chartData = sortedWeeks.map(weekKey => tripsByWeek[weekKey]);
 
-        let html = '<ul>';
-        sortedWeeks.forEach(weekKey => {
-            html += `<li><strong>Week of ${new Date(weekKey).toLocaleDateString()}:</strong> <span>${tripsByWeek[weekKey]} new trips</span></li>`;
+        window.tripsPerWeekChartInstance = new Chart(ctx, {
+            type: 'line',
+            data: {
+                labels: chartLabels,
+                datasets: [{
+                    label: 'New Trips',
+                    data: chartData,
+                    borderColor: '#2563eb', // Primary blue
+                    backgroundColor: 'rgba(37, 99, 235, 0.2)', // Primary blue with transparency
+                    tension: 0.4,
+                    fill: true
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: {
+                        labels: {
+                            color: '#0f172a' // text color
+                        }
+                    }
+                },
+                scales: {
+                    x: {
+                        grid: {
+                            color: 'rgba(226, 232, 240, 0.2)' // border color with transparency
+                        },
+                        ticks: {
+                            color: '#475569' // textSecondary color
+                        }
+                    },
+                    y: {
+                        beginAtZero: true,
+                        grid: {
+                            color: 'rgba(226, 232, 240, 0.2)'
+                        },
+                        ticks: {
+                            color: '#475569'
+                        }
+                    }
+                }
+            }
         });
-        html += '</ul>';
-        tripsPerWeekDiv.innerHTML = html;
-        console.log('Trips per week displayed successfully.');
+        console.log('Trips per week chart displayed successfully.');
 
     } catch (err) {
         console.error('Unexpected error during trips per week fetch:', err);
-        tripsPerWeekDiv.innerHTML = '<p class="error-message">An unexpected error occurred loading trips per week.</p>';
+        chartContainer.innerHTML = '<p class="error-message">An unexpected error occurred loading trips per week.</p>';
+    }
+}
+
+// Function to fetch and display trips by pickup location as a Bar Chart
+async function fetchAndDisplayTripsByPickupLocationChart() {
+    const chartContainer = document.querySelector('#tripsByPickupChart').closest('.chart-container');
+    const canvas = chartContainer.querySelector('#tripsByPickupChart');
+    const ctx = canvas.getContext('2d');
+
+    if (window.tripsByPickupChartInstance) {
+        window.tripsByPickupChartInstance.destroy();
+    }
+
+    try {
+        const { data: tripsData, error: tripsError } = await supabaseClient
+            .from('trips')
+            .select('pickup');
+
+        if (tripsError) {
+            console.error('Error fetching trips for pickup location chart:', tripsError);
+            chartContainer.innerHTML = `<p class="error-message">Failed to load pickup location data: ${tripsError.message}</p>`;
+            return;
+        }
+
+        if (tripsData.length === 0) {
+            chartContainer.innerHTML = '<p class="loading-indicator">No trip data to analyze by pickup location.</p>';
+            return;
+        }
+
+        const pickupCounts = {};
+        tripsData.forEach(trip => {
+            const location = trip.pickup || 'Unknown';
+            pickupCounts[location] = (pickupCounts[location] || 0) + 1;
+        });
+
+        const sortedLocations = Object.keys(pickupCounts).sort((a, b) => pickupCounts[b] - pickupCounts[a]);
+        const chartLabels = sortedLocations;
+        const chartData = sortedLocations.map(location => pickupCounts[location]);
+
+        window.tripsByPickupChartInstance = new Chart(ctx, {
+            type: 'bar',
+            data: {
+                labels: chartLabels,
+                datasets: [{
+                    label: 'Number of Trips',
+                    data: chartData,
+                    backgroundColor: '#2563eb', // Primary blue
+                    borderColor: '#1d4ed8', // primaryDark
+                    borderWidth: 1
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: {
+                        labels: {
+                            color: '#0f172a'
+                        }
+                    }
+                },
+                scales: {
+                    x: {
+                        grid: {
+                            color: 'rgba(226, 232, 240, 0.2)'
+                        },
+                        ticks: {
+                            color: '#475569'
+                        }
+                    },
+                    y: {
+                        beginAtZero: true,
+                        grid: {
+                            color: 'rgba(226, 232, 240, 0.2)'
+                        },
+                        ticks: {
+                            color: '#475569'
+                        }
+                    }
+                }
+            }
+        });
+        console.log('Trips by pickup location chart displayed successfully.');
+
+    } catch (err) {
+        console.error('Unexpected error during trips by pickup location fetch:', err);
+        chartContainer.innerHTML = '<p class="error-message">An unexpected error occurred loading trips by pickup location.</p>';
+    }
+}
+
+// Function to fetch and display users over time
+// Function to fetch and display cumulative users over time as a Line Chart
+async function fetchAndDisplayCumulativeUsersChart() {
+    const chartContainer = document.querySelector('#cumulativeUsersChart').closest('.chart-container');
+    const canvas = chartContainer.querySelector('#cumulativeUsersChart');
+    const ctx = canvas.getContext('2d');
+
+    if (window.cumulativeUsersChartInstance) {
+        window.cumulativeUsersChartInstance.destroy();
+    }
+
+    try {
+        const { data: profilesData, error: profilesError } = await supabaseClient
+            .from('profiles')
+            .select('created_at')
+            .order('created_at', { ascending: true });
+
+        if (profilesError) {
+            console.error('Error fetching profiles for cumulative users chart:', profilesError);
+            chartContainer.innerHTML = `<p class="error-message">Failed to load cumulative users data: ${profilesError.message}</p>`;
+            return;
+        }
+
+        if (profilesData.length === 0) {
+            chartContainer.innerHTML = '<p class="loading-indicator">No user data to analyze cumulatively.</p>';
+            return;
+        }
+
+        const cumulativeUsers = [];
+        const userDates = [];
+
+        profilesData.forEach(profile => {
+            if (!profile.created_at) {
+                console.warn('Skipping profile due to missing created_at:', profile);
+                return;
+            }
+            const date = new Date(profile.created_at);
+            if (isNaN(date.getTime())) {
+                console.warn('Skipping profile due to invalid created_at date:', profile);
+                return;
+            }
+            userDates.push(date);
+        });
+
+        if (userDates.length === 0) {
+            chartContainer.innerHTML = '<p class="loading-indicator">No valid user data to analyze cumulatively.</p>';
+            return;
+        }
+
+        // Sort dates to ensure correct cumulative count
+        userDates.sort((a, b) => a.getTime() - b.getTime());
+
+        let count = 0;
+        let currentDate = new Date(userDates[0].getFullYear(), userDates[0].getMonth(), 1); // Start of the first month
+        let dateIndex = 0;
+
+        // Populate cumulative data month by month
+        while (dateIndex < userDates.length) {
+            let nextMonth = new Date(currentDate);
+            nextMonth.setMonth(nextMonth.getMonth() + 1);
+
+            while (dateIndex < userDates.length && userDates[dateIndex] < nextMonth) {
+                count++;
+                dateIndex++;
+            }
+            cumulativeUsers.push({ date: new Date(currentDate), count: count });
+            currentDate = nextMonth;
+        }
+        
+        const chartLabels = cumulativeUsers.map(item => item.date.toLocaleDateString('en-US', { month: 'short', year: 'numeric' }));
+        const chartData = cumulativeUsers.map(item => item.count);
+
+        window.cumulativeUsersChartInstance = new Chart(ctx, {
+            type: 'line',
+            data: {
+                labels: chartLabels,
+                datasets: [{
+                    label: 'Cumulative Users',
+                    data: chartData,
+                    borderColor: '#2563eb', // Primary blue
+                    backgroundColor: 'rgba(37, 99, 235, 0.2)', // Primary blue with transparency
+                    tension: 0.4,
+                    fill: true
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: {
+                        labels: {
+                            color: '#0f172a'
+                        }
+                    }
+                },
+                scales: {
+                    x: {
+                        grid: {
+                            color: 'rgba(226, 232, 240, 0.2)'
+                        },
+                        ticks: {
+                            color: '#475569'
+                        }
+                    },
+                    y: {
+                        beginAtZero: true,
+                        grid: {
+                            color: 'rgba(226, 232, 240, 0.2)'
+                        },
+                        ticks: {
+                            color: '#475569'
+                        }
+                    }
+                }
+            }
+        });
+        console.log('Cumulative users chart displayed successfully.');
+
+    } catch (err) {
+        console.error('Unexpected error during cumulative users fetch:', err);
+        chartContainer.innerHTML = '<p class="error-message">An unexpected error occurred loading cumulative users.</p>';
     }
 }
 
 // Function to fetch and display users over time
 async function fetchAndDisplayUsersOverTime() {
     const usersOverTimeDiv = document.getElementById('users-over-time-data');
-    usersOverTimeDiv.innerHTML = '<p class="loading-indicator">Loading users over time...</p>';
+    const chartContainer = usersOverTimeDiv.previousElementSibling; // Get the chart-container div
+    const canvas = chartContainer.querySelector('#usersOverTimeChart');
+    const ctx = canvas.getContext('2d');
+
+    // Clear previous chart if it exists
+    if (window.usersOverTimeChartInstance) {
+        window.usersOverTimeChartInstance.destroy();
+    }
+
+    chartContainer.style.display = 'block'; // Show chart container
+    usersOverTimeDiv.style.display = 'none'; // Hide list data
 
     try {
         const { data, error } = await supabaseClient
             .from('profiles')
-            .select('updated_at') // Using updated_at as created_at is not explicitly mentioned for profiles, and backend.md uses it.
-            .order('updated_at', { ascending: true });
+            .select('created_at')
+            .order('created_at', { ascending: true });
 
         if (error) {
             console.error('Error fetching profiles for analytics:', error);
-            usersOverTimeDiv.innerHTML = `<p class="error-message">Failed to load users analytics: ${error.message}</p>`;
+            chartContainer.innerHTML = `<p class="error-message">Failed to load users analytics: ${error.message}</p>`;
             return;
         }
 
         if (data.length === 0) {
-            usersOverTimeDiv.innerHTML = '<p class="loading-indicator">No user data for analytics.</p>';
+            chartContainer.innerHTML = '<p class="loading-indicator">No user data for analytics.</p>';
             return;
         }
 
         const usersByMonth = {};
         data.forEach(profile => {
-            const date = new Date(profile.updated_at);
-            // Get the start of the month
+            if (!profile.created_at) {
+                console.warn('Skipping profile due to missing created_at:', profile);
+                return;
+            }
+            const date = new Date(profile.created_at);
+            if (isNaN(date.getTime())) {
+                console.warn('Skipping profile due to invalid created_at date:', profile);
+                return;
+            }
             const startOfMonth = new Date(date.getFullYear(), date.getMonth(), 1);
             startOfMonth.setHours(0, 0, 0, 0);
-            const monthKey = startOfMonth.toISOString().split('T')[0].substring(0, 7); // YYYY-MM format
+            const monthKey = startOfMonth.toISOString().split('T')[0].substring(0, 7);
 
             if (!usersByMonth[monthKey]) {
                 usersByMonth[monthKey] = 0;
@@ -209,19 +496,60 @@ async function fetchAndDisplayUsersOverTime() {
         });
 
         const sortedMonths = Object.keys(usersByMonth).sort();
-
-        let html = '<ul>';
-        sortedMonths.forEach(monthKey => {
+        const chartLabels = sortedMonths.map(monthKey => {
             const [year, month] = monthKey.split('-');
-            const monthName = new Date(year, month - 1).toLocaleString('en-US', { month: 'long' });
-            html += `<li><strong>${monthName} ${year}:</strong> <span>${usersByMonth[monthKey]} new users</span></li>`;
+            return new Date(year, month - 1).toLocaleString('en-US', { month: 'short', year: 'numeric' });
         });
-        html += '</ul>';
-        usersOverTimeDiv.innerHTML = html;
-        console.log('Users over time displayed successfully.');
+        const chartData = sortedMonths.map(monthKey => usersByMonth[monthKey]);
+
+        window.usersOverTimeChartInstance = new Chart(ctx, {
+            type: 'line',
+            data: {
+                labels: chartLabels,
+                datasets: [{
+                    label: 'New Users',
+                    data: chartData,
+                    borderColor: '#2563eb', // Primary blue
+                    backgroundColor: 'rgba(37, 99, 235, 0.2)', // Primary blue with transparency
+                    tension: 0.4,
+                    fill: true
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: {
+                        labels: {
+                            color: '#0f172a' // text color
+                        }
+                    }
+                },
+                scales: {
+                    x: {
+                        grid: {
+                            color: 'rgba(226, 232, 240, 0.2)'
+                        },
+                        ticks: {
+                            color: '#475569'
+                        }
+                    },
+                    y: {
+                        beginAtZero: true,
+                        grid: {
+                            color: 'rgba(226, 232, 240, 0.2)'
+                        },
+                        ticks: {
+                            color: '#475569'
+                        }
+                    }
+                }
+            }
+        });
+        console.log('Users over time chart displayed successfully.');
 
     } catch (err) {
         console.error('Unexpected error during users over time fetch:', err);
-        usersOverTimeDiv.innerHTML = '<p class="error-message">An unexpected error occurred loading users over time.</p>';
+        chartContainer.innerHTML = '<p class="error-message">An unexpected error occurred loading users over time.</p>';
     }
 }

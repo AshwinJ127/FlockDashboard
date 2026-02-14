@@ -1,25 +1,29 @@
+@import url('https://fonts.googleapis.com/css2?family=Share+Tech+Mono&display=swap');
+
 body {
-    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol";
+    font-family: 'Share Tech Mono', monospace;
     margin: 0;
     padding: 20px;
-    background-color: #ffffff; /* background */
-    color: #0f172a; /* text */
+    background-color: #1a1a2e; /* Dark background */
+    color: #e0e0e0; /* Light text for contrast */
     line-height: 1.6;
 }
 
 .container {
     max-width: 1200px;
     margin: 0 auto;
-    background-color: #f8fafc; /* surface */
+    background-color: #1f213a; /* Slightly lighter dark surface */
     border-radius: 8px;
-    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    box-shadow: 0 0 15px rgba(37, 99, 235, 0.5); /* Blue glowing shadow */
     padding: 30px;
+    border: 1px solid rgba(37, 99, 235, 0.3); /* Subtle blue border */
 }
 
 h1 {
     color: #2563eb; /* primary */
     text-align: center;
     margin-bottom: 30px;
+    text-shadow: 0 0 8px rgba(37, 99, 235, 0.7); /* Glowing effect for H1 */
 }
 
 .trip-list {
@@ -29,11 +33,11 @@ h1 {
 }
 
 .card {
-    background-color: #ffffff; /* card */
-    border: 1px solid #e2e8f0; /* border */
+    background-color: #1f213a; /* Dark background for cards */
+    border: 1px solid rgba(37, 99, 235, 0.5); /* Primary blue glowing border */
     border-radius: 8px;
     padding: 20px;
-    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+    box-shadow: 0 0 10px rgba(37, 99, 235, 0.3); /* Primary blue glowing shadow */
 }
 
 .card h3 {
@@ -44,12 +48,12 @@ h1 {
 
 .card p {
     margin: 5px 0;
-    color: #475569; /* textSecondary */
+    color: #e0e0e0; /* Light text for contrast */
 }
 
 .card .driver {
     font-weight: bold;
-    color: #0f172a; /* text */
+    color: #2563eb; /* primary for driver name */
 }
 
 .refresh-button-container {
@@ -66,33 +70,35 @@ h1 {
     border-radius: 5px;
     font-size: 16px;
     cursor: pointer;
-    transition: background-color 0.3s ease;
+    transition: background-color 0.3s ease, box-shadow 0.3s ease;
+    box-shadow: 0 0 5px rgba(37, 99, 235, 0.5); /* Subtle glow for button */
 }
 
 .refresh-button:hover {
     background-color: #1d4ed8; /* primaryDark */
+    box-shadow: 0 0 15px rgba(37, 99, 235, 0.8); /* More intense glow on hover */
 }
 
 .loading-indicator {
     text-align: center;
     margin-top: 20px;
     font-style: italic;
-    color: #475569; /* textSecondary */
+    color: #93c5fd; /* A lighter blue/textSecondary for visibility */
 }
 
 .error-message {
-    color: #ef4444; /* error */
+    color: #f87171; /* A softer red for error, more visible on dark */
     text-align: center;
     margin-top: 20px;
     font-weight: bold;
 }
 
 .analytics-section {
-    background-color: #ffffff; /* card */
-    border: 1px solid #e2e8f0; /* border */
+    background-color: #1f213a; /* Dark background for analytics sections */
+    border: 1px solid rgba(37, 99, 235, 0.5); /* Primary blue glowing border */
     border-radius: 8px;
     padding: 20px;
-    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+    box-shadow: 0 0 10px rgba(37, 99, 235, 0.3); /* Primary blue glowing shadow */
     margin-bottom: 20px;
 }
 
@@ -103,27 +109,10 @@ h1 {
     text-align: center;
 }
 
-.analytics-data ul {
-    list-style: none;
-    padding: 0;
-}
-
-.analytics-data li {
-    background-color: #f8fafc; /* surface */
-    margin-bottom: 8px;
-    padding: 10px 15px;
-    border-radius: 5px;
-    border: 1px solid #e2e8f0;
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-}
-
-.analytics-data li strong {
-    color: #0f172a; /* text */
-}
-
-.analytics-data li span {
-    color: #475569; /* textSecondary */
-    font-size: 0.9em;
+/* New style for chart containers */
+.chart-container {
+    position: relative;
+    height: 300px; /* Fixed height for charts */
+    width: 100%;
+    margin-top: 20px;
 }

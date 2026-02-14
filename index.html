@@ -25,19 +25,40 @@
 
         <div class="analytics-section">
             <h3>New Trips Posted Per Week</h3>
-            <div id="trips-per-week-data" class="analytics-data">
-                <!-- Trips per week data will be inserted here by JavaScript -->
+            <div class="chart-container">
+                <canvas id="tripsPerWeekChart"></canvas>
+            </div>
+            <div id="trips-per-week-data" class="analytics-data" style="display: none;">
+                <!-- Original list data will be hidden as chart takes over -->
             </div>
         </div>
 
         <div class="analytics-section" style="margin-top: 30px;">
             <h3>Users Over Time</h3>
-            <div id="users-over-time-data" class="analytics-data">
-                <!-- Users over time data will be inserted here by JavaScript -->
+            <div class="chart-container">
+                <canvas id="usersOverTimeChart"></canvas>
+            </div>
+            <div id="users-over-time-data" class="analytics-data" style="display: none;">
+                <!-- Original list data will be hidden as chart takes over -->
+            </div>
+        </div>
+
+        <div class="analytics-section" style="margin-top: 30px;">
+            <h3>Trips by Pickup Location</h3>
+            <div class="chart-container">
+                <canvas id="tripsByPickupChart"></canvas>
+            </div>
+        </div>
+
+        <div class="analytics-section" style="margin-top: 30px;">
+            <h3>Cumulative Users</h3>
+            <div class="chart-container">
+                <canvas id="cumulativeUsersChart"></canvas>
             </div>
         </div>
     </div>
 
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="script.js"></script>
 </body>
